@@ -123,97 +123,7 @@ const int CheckPower[4]  = { 100, 35, 65, 65 };
 const int CountModifier[8] = { 0, 0, 64, 96, 113, 120, 124, 128 };
 
 
-// Evaluates pawns
-// INLINE int EvalPawns(const Position *pos, EvalInfo *ei, const Color color) {
-
-//     const Direction down = color == WHITE ? SOUTH : NORTH;
-
-//     int count, eval = 0;
-
-//     Bitboard pawns = colorPieceBB(color, PAWN);
-
-//     // Doubled pawns (only when one is blocking the other from moving)
-//     count = PopCount(pawns & ShiftBB(pawns, NORTH));
-//     eval += PawnDoubled * count;
-//     TraceCount(PawnDoubled);
-
-//     // Pawns defending pawns
-//     count = PopCount(pawns & PawnBBAttackBB(pawns, !color));
-//     eval += PawnSupport * count;
-//     TraceCount(PawnSupport);
-
-//     // Open pawns
-//     Bitboard open = ~Fill(colorPieceBB(!color, PAWN), down);
-//     count = PopCount(pawns & open & ~PawnBBAttackBB(pawns, color));
-//     eval += PawnOpen * count;
-//     TraceCount(PawnOpen);
-
-//     // Phalanx
-//     Bitboard phalanx = pawns & ShiftBB(pawns, WEST);
-//     while (phalanx) {
-//         int rank = RelativeRank(color, RankOf(PopLsb(&phalanx)));
-//         eval += PawnPhalanx[rank];
-//         TraceIncr(PawnPhalanx[rank]);
-//     }
-
-//     // Evaluate each individual pawn
-//     while (pawns) {
-
-//         Square sq = PopLsb(&pawns);
-
-//         TraceIncr(PieceValue[PAWN-1]);
-//         TraceIncr(PSQT[PAWN-1][BlackRelativeSquare(color, sq)]);
-
-//         // Isolated pawns
-//         if (!(IsolatedMask[sq] & colorPieceBB(color, PAWN))) {
-//             eval += PawnIsolated;
-//             TraceIncr(PawnIsolated);
-//         }
-
-//         // Passed pawns
-//         if (!((PassedMask[color][sq]) & colorPieceBB(!color, PAWN))) {
-
-//             int rank = RelativeRank(color, RankOf(sq));
-
-//             eval += PawnPassed[rank];
-//             TraceIncr(PawnPassed[rank]);
-
-//             if (BB(sq) & PawnBBAttackBB(pawns, color)) {
-//                 eval += PassedDefended[rank];
-//                 TraceIncr(PassedDefended[rank]);
-//             }
-
-//             ei->passedPawns |= BB(sq);
-//         }
-//     }
-
-//     return eval;
-// }
-
-// // Tries to get pawn eval from cache, otherwise evaluates and saves
-// int ProbePawnCache(const Position *pos, EvalInfo *ei, PawnCache pc) {
-
-//     // Can't cache when tuning as full trace is needed
-//     if (TRACE) return EvalPawns(pos, ei, WHITE) - EvalPawns(pos, ei, BLACK);
-
-//     Key key = pos->pawnKey;
-//     PawnEntry *pe = &pc[key % PAWN_CACHE_SIZE];
-
-//     if (pe->key != key) {
-//         pe->key  = key;
-//         pe->eval = EvalPawns(pos, ei, WHITE) - EvalPawns(pos, ei, BLACK);
-//         pe->passedPawns = ei->passedPawns;
-//     }
-
-//     return ei->passedPawns = pe->passedPawns, pe->eval;
-// }
-
-
-// Define new variables for enhancements
-const int PawnChainBonus = 15; // Bonus for pawns forming chains
-const int ConnectedPassed[8] = {0, 20, 40, 60, 80, 100, 120, 140}; // Bonus for connected passed pawns by rank
-const int PassedBlockadePenalty[8] = {0, -10, -20, -30, -40, -50, -60, -70}; // Penalty for blockaded passed pawns by rank
-
+Evaluates pawns
 INLINE int EvalPawns(const Position *pos, EvalInfo *ei, const Color color) {
 
     const Direction down = color == WHITE ? SOUTH : NORTH;
@@ -227,22 +137,10 @@ INLINE int EvalPawns(const Position *pos, EvalInfo *ei, const Color color) {
     eval += PawnDoubled * count;
     TraceCount(PawnDoubled);
 
-    // Dynamic penalty for doubled pawns based on file position (central files are worse)
-    Bitboard doubled = pawns & ShiftBB(pawns, NORTH);
-    while (doubled) {
-        Square sq = PopLsb(&doubled);
-        int filePenalty = (FileOf(sq) == FILE_D || FileOf(sq) == FILE_E) ? 2 : 1;
-        eval += PawnDoubled * filePenalty;
-    }
-
     // Pawns defending pawns
     count = PopCount(pawns & PawnBBAttackBB(pawns, !color));
     eval += PawnSupport * count;
     TraceCount(PawnSupport);
-
-    // Reward pawn chains
-    Bitboard pawnChains = pawns & ShiftBB(pawns, WEST | EAST);
-    eval += PopCount(pawnChains) * PawnChainBonus;
 
     // Open pawns
     Bitboard open = ~Fill(colorPieceBB(!color, PAWN), down);
@@ -285,19 +183,6 @@ INLINE int EvalPawns(const Position *pos, EvalInfo *ei, const Color color) {
                 TraceIncr(PassedDefended[rank]);
             }
 
-            // Connected passed pawns bonus
-            Bitboard connected = (BB(sq) & (ShiftBB(pawns, WEST) | ShiftBB(pawns, EAST)));
-            if (connected) {
-                eval += ConnectedPassed[rank];
-                TraceIncr(ConnectedPassed[rank]);
-            }
-
-            // Penalize blockaded passed pawns
-            if (BB(sq) & BlockadeMask[color][sq]) {
-                eval += PassedBlockadePenalty[rank];
-                TraceIncr(PassedBlockadePenalty[rank]);
-            }
-
             ei->passedPawns |= BB(sq);
         }
     }
@@ -320,14 +205,11 @@ int ProbePawnCache(const Position *pos, EvalInfo *ei, PawnCache pc) {
         pe->passedPawns = ei->passedPawns;
     }
 
-    // Lazy evaluation: only re-evaluate when pawn structure changes
-    if (pos->pawnKey != ei->lastPawnKey) {
-        ei->lastPawnKey = pos->pawnKey;
-        pe->eval = EvalPawns(pos, ei, WHITE) - EvalPawns(pos, ei, BLACK);
-    }
-
     return ei->passedPawns = pe->passedPawns, pe->eval;
 }
+
+
+
 
 // Evaluates knights, bishops, rooks, or queens
 INLINE int EvalPiece(const Position *pos, EvalInfo *ei, const Color color, const PieceType pt) {
