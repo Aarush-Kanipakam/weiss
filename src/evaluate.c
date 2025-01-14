@@ -123,7 +123,7 @@ const int CheckPower[4]  = { 100, 35, 65, 65 };
 const int CountModifier[8] = { 0, 0, 64, 96, 113, 120, 124, 128 };
 
 
-Evaluates pawns
+Evaluates pawns;
 INLINE int EvalPawns(const Position *pos, EvalInfo *ei, const Color color) {
 
     const Direction down = color == WHITE ? SOUTH : NORTH;
