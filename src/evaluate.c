@@ -207,6 +207,13 @@ const int CountModifier[8] = { 0, 0, 64, 96, 113, 120, 124, 128 };
 
 //     return ei->passedPawns = pe->passedPawns, pe->eval;
 // }
+
+
+// Define new variables for enhancements
+const int PawnChainBonus = 15; // Bonus for pawns forming chains
+const int ConnectedPassed[8] = {0, 20, 40, 60, 80, 100, 120, 140}; // Bonus for connected passed pawns by rank
+const int PassedBlockadePenalty[8] = {0, -10, -20, -30, -40, -50, -60, -70}; // Penalty for blockaded passed pawns by rank
+
 INLINE int EvalPawns(const Position *pos, EvalInfo *ei, const Color color) {
 
     const Direction down = color == WHITE ? SOUTH : NORTH;
