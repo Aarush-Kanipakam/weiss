@@ -83,7 +83,7 @@ static void *ThreadClearTT(void *voidThread) {
     int count = thread->count;
 
     // Logic for dividing the work taken from CFish
-    uint64_t twoMB  = 2 * 1024 * 1024;
+    uint64_t twoMB  = 1 * 1024 * 1024;
     uint64_t size   = TT.count * sizeof(TTEntry);
     uint64_t slice  = (size + count - 1) / count;
     uint64_t blocks = (slice + twoMB - 1) / twoMB;
@@ -117,7 +117,7 @@ void InitTT() {
 
 #if defined(__linux__)
     // Align on 2MB boundaries and request Huge Pages
-    TT.mem = aligned_alloc(2 * 1024 * 1024, size);
+    TT.mem = aligned_alloc(1 * 1024 * 1024, size);
     TT.table = (TTEntry *)TT.mem;
     madvise(TT.table, size, MADV_HUGEPAGE);
 #else
