@@ -241,7 +241,7 @@ INLINE int EvalPawns(const Position *pos, EvalInfo *ei, const Color color) {
     TraceCount(PawnSupport);
 
     // Reward pawn chains
-    Bitboard pawnChains = pawns & ShiftBB(pawns, SOUTHWEST | SOUTHEAST);
+    Bitboard pawnChains = pawns & ShiftBB(pawns, WEST | EAST);
     eval += PopCount(pawnChains) * PawnChainBonus;
 
     // Open pawns
