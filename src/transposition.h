@@ -28,7 +28,7 @@
 // is the limit current indexing is able
 // to use given the 16B size of entries
 #define MAXHASH 65536
-#define DEFAULTHASH 32
+#define DEFAULTHASH 1
 
 #define ValidBound(bound) (bound >= BOUND_UPPER && bound <= BOUND_EXACT)
 #define ValidScore(score) (score >= -MATE && score <= MATE)
